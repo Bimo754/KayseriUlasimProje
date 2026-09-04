@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kayseri Ulaşım - Saha Operasyon & Akıllı Rota Portalı</title>
+    
+    <!-- Google Fonts (Inter & Outfit) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    
+    <!-- Anti-FOUC Tema Yükleme Betiği (Varsayılan: Karanlık) -->
+    <script>
+      (function() {
+        var savedTheme = localStorage.getItem('ku_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      })();
+    </script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <!-- Modüler CSS Mimarisi (Clean Master Stylesheet Importer) -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="auth-required">
+
+    <!-- =========================================================================
+         0. ZORUNLU TAM EKRAN GİRİŞ KAPISI (MANDATORY FULL-SCREEN LOGIN GATE)
+         ========================================================================= -->
+    <div id="auth-portal-screen" class="auth-portal-screen">
+        <div class="auth-card-container">
+            <button type="button" class="theme-toggle-btn auth-theme-toggle" onclick="toggleTheme()" title="Tema Değiştir (Aydınlık / Karanlık)">
+                <svg class="theme-icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                <svg class="theme-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                <span class="theme-btn-text">Karanlık</span>
+            </button>
+            <div class="auth-card-header">
+                <img src="/static/img/kayseri-ulasim-beyaz.png" alt="Kayseri Ulaşım" class="auth-brand-logo">
+                <h1 class="auth-main-title">Saha & Rota Portalı</h1>
+                <p class="auth-sub-title">Sisteme erişmek ve operasyona başlamak için lütfen giriş yapınız.</p>
+            </div>
+
+            <!-- MANUEL GİRİŞ FORMU -->
+            <form id="form-auth-gate" onsubmit="handleLoginSubmit(event)">
+                <div id="auth-login-error" style="display:none; color:#ef4444; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); padding:10px 14px; border-radius:8px; margin-bottom:14px; font-size:13px; font-weight:700; text-align:center;"></div>
+                <div class="form-field">
+                    <label>Kullanıcı Adı</label>
+                    <input type="text" id="login-username" class="input-dark input-giant" placeholder="Kullanıcı adınızı giriniz" required autocomplete="username">
+                </div>
+                <div class="form-field">
+                    <label>Şifre</label>
+                    <input type="password" id="login-password" class="input-dark input-giant" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-giant btn-primary btn-block" id="btn-login-submit" style="margin-top:16px;">
+                    <span>SİSTEME GİRİŞ YAP</span>
+                </button>
+            </form>
+
+            <div class="auth-footer-note">
+                <span>Kayseri Ulaşım Bilgi İşlem ve Raylı Sistemler Müdürlüğü</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAM EKRAN HARİTA KATMANI (Giriş yapıldıktan sonra aktifleşir) -->
+    <div id="map"></div>
+
+    <!-- =========================================================================
+         1. SAHA OPERATÖRÜ ARAYÜZÜ (SAHA FIELD CONSOLE)
+         ========================================================================= -->
+    <div id="shell-saha" class="role-shell">
+        
+        <!-- ÜST MİNİMALİST SAHA BARI (MASTER HEADER) -->
+        <header class="master-header">
+            <div class="header-left">
+                <div class="brand-box">
+                    <img src="/static/img/kayseri-ulasim-beyaz.png" alt="Kayseri Ulaşım" class="brand-logo">
+                    <div class="brand-text">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span class="brand-title">Saha Görev Konsolu</span>
+                            <span class="live-status-pill"><span class="pulse-dot"></span> CANLI SAHA</span>
+                        </div>
+                        <span class="brand-sub">Kayseri Ulaşım A.Ş. • Akıllı Rota & Saha Operasyonları</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <button class="btn btn-sm btn-primary" onclick="openModal('modal-add-fault')" title="Sahadan Yeni Arıza Bildir">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <span>Arıza Bildir</span>
+                </button>
+                <button class="btn btn-sm btn-outline" id="saha-header-vehicle-badge" onclick="window.openSahaVehicleSelectModal()" title="Görev Aracını Değiştir" style="border-color: #10b981; color: #10b981; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                    <span id="saha-vehicle-plate-text">38 BKM 001</span>
+                </button>
+                <button class="btn btn-sm btn-outline" onclick="focusOnVehicle()" title="Aracın Haritadaki Konumuna Odaklan">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                    <span>Araca Odaklan</span>
+                </button>
+                <div id="saha-header-auth-container"></div>
+            </div>
+        </header>
+
+        <!-- CANLI SAHA GÖREV HUD KARTI (MODERN FLIGHT DECK) -->
+        <div class="mission-hud-card" id="saha-hud-panel">
+            <div class="hud-seq-badge">
+                <span class="hud-seq-label">HEDEF</span>
+                <span class="hud-seq-num" id="saha-hud-step-pill">1</span>
+            </div>
+
+            <div class="hud-main-body">
+                <div class="hud-location-bar">
+                    <span class="hud-station-tag" id="saha-hud-target-name">Tüm Arızalar Çözüldü</span>
+                    <span class="hud-meta-dot">•</span>
+                    <span class="hud-eta-info">
+                        <span id="saha-hud-target-dist">0 km</span> (<span id="saha-hud-target-eta">~0 dk</span>)
+                    </span>
+                </div>
+                <div class="hud-objective-title" id="saha-hud-target-fault">
+                    Bekleyen aktif arıza bulunmamaktadır.
+                </div>
+            </div>
+
+            <div class="hud-actions-group">
+                <!-- SIRADAKİ DURAKLAR AÇILIR MENÜSÜ -->
+                <button class="btn-hud-queue" id="saha-btn-toggle-steps" onclick="toggleStepsDropdown()" title="Müdahale Sırasını Gör">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                    <span id="saha-hud-total-summary">Rota Sırası</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+
+                <!-- TEK TIKLA ONARIM BUTONU -->
+                <button class="btn-hud-action btn-hud-resolve-action" id="saha-btn-resolve-fault" onclick="resolveCurrentTargetFault()" title="Hedef arızayı çözüldü yap ve ilerle">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span>ONARILDI</span>
+                </button>
+            </div>
+
+            <!-- Açılır Sıradaki Duraklar Listesi (Tam Ortalanmış) -->
+            <div class="hud-dropdown-panel" id="saha-banner-steps-dropdown" style="display:none;">
+                <div class="dropdown-header">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                        <span>MÜDAHALE ROTA SIRASI</span>
+                    </div>
+                    <button class="btn-text-close" onclick="toggleStepsDropdown()">&times;</button>
+                </div>
+                <div class="hud-stops-preview" id="saha-hud-stops-preview"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         2. YÖNETİCİ ARAYÜZÜ (ADMIN SHELL - KAPSAMLI FULL GIS KOMUTA MERKEZİ)
+         ========================================================================= -->
+    <div id="shell-admin" class="role-shell" style="display:none;">
+        
+        <!-- ÜST YÜZEN MİNİMALİST BAR -->
+        <header class="map-floating-bar top-bar">
+            <div class="bar-left">
+                <div class="brand-capsule">
+                    <img src="/static/img/kayseri-ulasim-beyaz.png" alt="Kayseri Ulaşım" class="brand-logo-img">
+                    <span class="brand-title">Yönetici Komuta Portalı</span>
+                </div>
+
+                <div class="quick-nav-pills">
+                    <button class="nav-pill pill-nokta-highlight" id="admin-btn-toggle-sidebar" onclick="toggleAdminSidebar()" title="Nokta Listesini Aç/Kapat">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <span id="txt-toggle-sidebar">Nokta Listesi</span>
+                    </button>
+
+                    <button class="nav-pill pill-fault-highlight" id="admin-btn-quick-faults" onclick="toggleAdminFaultsDrawer()" title="Arıza & Onarım Yönetim Merkezini Aç/Kapat">
+                        <span class="pulse-indicator"></span>
+                        <span id="admin-quick-fault-count">0</span>
+                        <span>Arıza & Onarım Merkezi</span>
+                    </button>
+
+                    <button class="nav-pill pill-kiosk-highlight" id="btn-open-kiosk-manager" onclick="openKioskManagerModal()" title="Otomatik Kiosk Veritabanı Tablosu">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                        <span>Kiosk Tablosu</span>
+                    </button>
+
+                    <button class="nav-pill pill-report-highlight" id="btn-open-report-manager" onclick="openReportManagerModal()" title="Sistem Operasyon Raporu ve Bakım Planı Üret">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        <span>Rapor & Bakım Merkezi</span>
+                    </button>
+
+                    <button class="nav-pill pill-disabled-highlight" id="btn-open-disabled-manager" onclick="openDisabledManagerModal()" title="Devre Dışı / Pasif İstasyon ve Kiosk Yönetimi">
+                        <span id="disabled-items-badge-count" class="badge-chip disabled-pill-badge">0</span>
+                        <span>Pasif Elemanlar</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bar-right">
+                <div id="admin-header-auth-container"></div>
+            </div>
+        </header>
+
+        <!-- YÖNETİCİ CANLI GÖREV & SÜRÜŞ HUD KARTI -->
+        <div class="mission-hud-card" id="admin-hud-panel">
+            <div class="hud-seq-badge">
+                <span class="hud-seq-label">HEDEF</span>
+                <span class="hud-seq-num" id="admin-hud-step-pill">1</span>
+            </div>
+
+            <div class="hud-main-body">
+                <div class="hud-location-bar">
+                    <span class="hud-station-tag" id="admin-hud-target-name">Tüm Arızalar Çözüldü</span>
+                    <span class="hud-meta-dot">•</span>
+                    <span class="hud-eta-info">
+                        <span id="admin-hud-target-dist">0 km</span> (<span id="admin-hud-target-eta">~0 dk</span>)
+                    </span>
+                </div>
+                <div class="hud-objective-title" id="admin-hud-target-fault">
+                    Bekleyen aktif arıza bulunmamaktadır.
+                </div>
+            </div>
+
+            <div class="hud-actions-group">
+                <!-- SIRADAKİ DURAKLAR AÇILIR MENÜSÜ -->
+                <button class="btn-hud-queue" id="admin-btn-toggle-steps" onclick="toggleAdminStepsDropdown()" title="Müdahale Sırasını Gör">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                    <span id="admin-hud-total-summary">Rota Sırası</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+
+                <!-- ARAÇLARA ODAKLAN (ÇİFT ARAÇ DROPDOWN) -->
+                <div class="hud-vehicle-focus-dropdown" style="position: relative; display: inline-block;">
+                    <button class="btn-hud-action btn-hud-focus-action" id="btn-admin-vehicle-focus" onclick="window.toggleVehicleFocusDropdown()" title="Haritada Saha Bakım Araçlarına Odaklan">
+                        <span id="dot-admin-vehicle-focus" style="width:7px; height:7px; border-radius:50%; background:#10b981; display:inline-block; flex-shrink:0;"></span>
+                        <span id="txt-admin-vehicle-focus" style="font-weight:800;">38 BKM 001</span>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+
+                    <div id="admin-vehicle-focus-dropdown" class="hud-dropdown-panel vehicle-focus-dropdown" style="display:none; position:absolute; top:calc(100% + 6px); right:0; width: 220px; background: var(--bg-modal); border: 1px solid var(--border-card); border-radius: 10px; padding: 8px; z-index: 120; box-shadow: var(--shadow-floating);">
+                        <div style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px; padding:0 4px; letter-spacing:0.5px;">Saha Araç Konumları</div>
+                        
+                        <div class="focus-vehicle-option-row" id="focus-row-093" onclick="window.selectMissionVehicle('861000000000001'); window.toggleVehicleFocusDropdown(false);">
+                            <span style="background:#10b981; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+                            <div style="flex:1;">
+                                <div style="font-weight:800; color:#10b981; font-size:12px;">38 BKM 001</div>
+                                <div style="font-size:10px; color:var(--text-sub);" id="txt-focus-sub-093">1. Saha Hizmet Aracı (Odaklı)</div>
+                            </div>
+                        </div>
+
+                        <div class="focus-vehicle-option-row" id="focus-row-089" onclick="window.selectMissionVehicle('861000000000002'); window.toggleVehicleFocusDropdown(false);">
+                            <span style="background:#f59e0b; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+                            <div style="flex:1;">
+                                <div style="font-weight:800; color:#f59e0b; font-size:12px;">38 BKM 002</div>
+                                <div style="font-size:10px; color:var(--text-sub);" id="txt-focus-sub-089">2. Saha Hizmet Aracı</div>
+                            </div>
+                        </div>
+
+                        <div style="border-top:1px solid var(--border-subtle); margin-top:6px; padding-top:6px;">
+                            <div class="focus-vehicle-option-row" id="row-toggle-dispatch-mode" onclick="window.toggleDispatchModeAction(); window.toggleVehicleFocusDropdown(false);" title="Araç Görev Dağılım Modunu Değiştir">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                                <div>
+                                    <div style="font-weight:700; font-size:11px; color:var(--text-head);" id="txt-dispatch-mode-title">Mod: Çift Araç Paylaşımı</div>
+                                    <div style="font-size:9.5px; color:var(--text-sub);" id="txt-dispatch-mode-sub">Tıkla: Tek Araç Yüküne Geç</div>
+                                </div>
+                            </div>
+                            <div class="focus-vehicle-option-row" onclick="window.focusOnAllVehicles(); window.toggleVehicleFocusDropdown(false);">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="12 8 8 12 12 16 12 8"></polygon></svg>
+                                <span style="font-weight:700; font-size:11px; color:var(--text-head);">Tüm Araçları Gör (Fit Bounds)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CANLI TELEMETRİ / GPS BUTONU -->
+                <button class="btn-hud-action btn-hud-telemetry-action" onclick="window.openTelemetryModal()" title="Canlı Araç GPS & Telemetri Yönetimi">
+                    <span class="telemetry-status-dot" id="hud-telemetry-dot"></span>
+                    <span id="hud-telemetry-text">GPS Telemetri</span>
+                    <span id="hud-telemetry-pill-badge" class="hud-live-pill-badge passive">PASİF</span>
+                </button>
+            </div>
+
+            <!-- Açılır Sıradaki Duraklar Listesi (Tam Ortalanmış) -->
+            <div class="hud-dropdown-panel banner-steps-dropdown" id="admin-banner-steps-dropdown" style="display:none;">
+                <div class="dropdown-header">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                        <span>MÜDAHALE ROTA SIRASI</span>
+                    </div>
+                    <button class="btn-text-close" onclick="toggleAdminStepsDropdown()">&times;</button>
+                </div>
+                <div class="hud-stops-preview" id="admin-hud-stops-preview"></div>
+            </div>
+        </div>
+        </div>
+
+        <!-- 1. SOL ÇEKMECE: ARIZA & ONARIM YÖNETİM MERKEZİ (ADMIN FAULTS & FIXES DRAWER) -->
+        <aside class="sliding-drawer drawer-left" id="admin-faults-panel">
+            <div class="drawer-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="pulse-indicator"></span>
+                    <div class="drawer-title">Arıza & Onarım Merkezi</div>
+                </div>
+                <button class="drawer-close-btn" onclick="toggleAdminFaultsDrawer()">&times;</button>
+            </div>
+
+            <!-- TAB SWITCHER: ARAÇ ROTA SIRASI vs ONARILANLAR -->
+            <div class="admin-fault-tab-bar">
+                <button class="tab-btn active" id="btn-admin-tab-route" onclick="window.switchAdminFaultsTab('route')">
+                    Rota Sırası (<span id="admin-route-fault-badge">0</span>)
+                </button>
+                <button class="tab-btn" id="btn-admin-tab-resolved" onclick="window.switchAdminFaultsTab('resolved')">
+                    Çözülenler (<span id="admin-resolved-fault-badge">0</span>)
+                </button>
+            </div>
+
+            <!-- 1. ARAÇ ROTA VE MÜDAHALE SIRASI GÖRÜNÜMÜ -->
+            <div id="admin-faults-route-view" class="admin-fault-subview">
+                <div class="panel-header-section">
+                    <!-- YENİLENMİŞ ÇİFT ARAÇLI ROTA VE MÜDAHALE KARTI -->
+                    <div class="admin-route-info-box dual-vehicle-route-box" style="flex-direction: column; gap: 8px; padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div class="route-info-icon" style="width: 28px; height: 28px;">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                                </div>
+                                <div>
+                                    <div class="route-info-title" style="font-size: 12px; font-weight: 800;">Akıllı Rota & Görev Başlangıcı</div>
+                                    <div class="route-info-sub" id="admin-route-view-summary" style="font-size: 10.5px;">Aktif rotayı hesaplamak için araç seçiniz:</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SEÇİLEBİLİR ÇİFT ARAÇ PERFORMANS / ROTA KARTLARI -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%;">
+                            
+                            <!-- ARAÇ 1: 38 BKM 001 -->
+                            <button type="button" class="btn-vehicle-route-select active" id="btn-route-select-093" onclick="window.selectMissionVehicle('861000000000001')" title="38 BKM 001 Aracını Görev Başlangıcı Yap">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <span style="font-weight: 800; color: #10b981; font-size: 11.5px;">38 BKM 001</span>
+                                    <span class="active-dot" id="dot-route-active-093" style="width: 6px; height: 6px; border-radius: 50%; background: #10b981;"></span>
+                                </div>
+                                <div style="font-size: 10px; color: var(--text-head); font-weight: 700;" id="route-stats-093">
+                                    -- km • -- dk
+                                </div>
+                                <div style="font-size: 9.5px; color: var(--text-muted);" id="route-stops-093">
+                                    -- Görev Durağı
+                                </div>
+                            </button>
+
+                            <!-- ARAÇ 2: 38 BKM 002 -->
+                            <button type="button" class="btn-vehicle-route-select" id="btn-route-select-089" onclick="window.selectMissionVehicle('861000000000002')" title="38 BKM 002 Aracını Görev Başlangıcı Yap">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <span style="font-weight: 800; color: #f59e0b; font-size: 11.5px;">38 BKM 002</span>
+                                    <span class="active-dot" id="dot-route-active-089" style="width: 6px; height: 6px; border-radius: 50%; background: transparent;"></span>
+                                </div>
+                                <div style="font-size: 10px; color: var(--text-head); font-weight: 700;" id="route-stats-089">
+                                    -- km • -- dk
+                                </div>
+                                <div style="font-size: 9.5px; color: var(--text-muted);" id="route-stops-089">
+                                    -- Görev Durağı
+                                </div>
+                            </button>
+
+                        </div>
+                    </div>
+
+                    <div class="search-input-wrap" style="margin: 10px 0 10px 0;">
+                        <svg class="search-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" id="admin-input-route-search" placeholder="Görevdeki istasyon veya arıza ara..." autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="panel-scroll-area" id="admin-route-faults-list">
+                    <div class="loading-state">Araca göre sıralı görevler yükleniyor...</div>
+                </div>
+            </div>
+
+            <!-- 3. ONARILAN / ÇÖZÜLEN ARIZALAR GEÇMİŞİ GÖRÜNÜMÜ -->
+            <div id="admin-faults-resolved-view" class="admin-fault-subview" style="display:none;">
+                <div class="panel-header-section">
+                    <div class="search-input-wrap" style="margin: 0 0 10px 0;">
+                        <svg class="search-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" id="admin-input-resolved-search" placeholder="Onarılan arıza veya istasyon ara..." autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="panel-scroll-area" id="admin-resolved-faults-list">
+                    <div class="loading-state">Onarılan kayıtlar yükleniyor...</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 2. SOL ÇEKMECE: NOKTA & İSTASYON GEZGİNİ PANELİ (ADMIN EXPLORER DRAWER) -->
+        <aside class="sliding-drawer drawer-left" id="admin-sidebar-panel">
+            <div class="drawer-header">
+                <div class="drawer-title">Nokta & Envanter Gezgini</div>
+                <button class="drawer-close-btn" onclick="toggleAdminSidebar()">&times;</button>
+            </div>
+
+            <div class="panel-header-section">
+                <!-- BAKIM ÜSSÜ KARTI (HOME) -->
+                <div class="base-quick-card" onclick="focusOnBase()" title="Merkez Depo ve Bakım Üssüne Odaklan">
+                    <div class="base-icon-box">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    </div>
+                    <div class="base-info-text">
+                        <div class="base-label">BAKIM ÜSSÜ & MERKEZ DEPO</div>
+                        <div class="base-coords" id="admin-sidebar-base-pos">38°42'51.3"N 35°29'28.0"E</div>
+                    </div>
+                </div>
+
+                <!-- SAHA BAKIM ARAÇLARI (ÇİFT ARAÇ KARTI SEKSİYONU) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; margin-bottom: 10px;">
+                    <!-- ARAÇ 1: 38 BKM 001 (GREEN) -->
+                    <div class="base-quick-card vehicle-quick-card vehicle-card-093" onclick="window.focusOnVehicle('861000000000001')" title="38 BKM 001 Aracına Odaklan" style="border-left: 3px solid #10b981; padding: 6px 8px;">
+                        <div class="base-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #10b981; min-width: 26px; height: 26px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                        </div>
+                        <div class="base-info-text" style="overflow: hidden;">
+                            <div class="base-label" style="color: #10b981; font-weight: 800; font-size: 11px;">38 BKM 001</div>
+                            <div class="base-coords" id="sidebar-vehicle-status-093" style="font-size: 9.5px; color: var(--text-sub);">1. Saha Aracı</div>
+                        </div>
+                    </div>
+
+                    <!-- ARAÇ 2: 38 BKM 002 (AMBER) -->
+                    <div class="base-quick-card vehicle-quick-card vehicle-card-089" onclick="window.focusOnVehicle('861000000000002')" title="38 BKM 002 Aracına Odaklan" style="border-left: 3px solid #f59e0b; padding: 6px 8px;">
+                        <div class="base-icon-box" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; min-width: 26px; height: 26px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                        </div>
+                        <div class="base-info-text" style="overflow: hidden;">
+                            <div class="base-label" style="color: #f59e0b; font-weight: 800; font-size: 11px;">38 BKM 002</div>
+                            <div class="base-coords" id="sidebar-vehicle-status-089" style="font-size: 9.5px; color: var(--text-sub);">2. Saha Aracı</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="search-input-wrap" style="margin: 10px 0;">
+                    <svg class="search-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="admin-input-search" placeholder="İstasyon, kiosk veya bayi ara..." autocomplete="off">
+                    <button class="search-clear-btn" id="admin-btn-clear-search" style="display:none;">&times;</button>
+                </div>
+
+                <div class="category-tabs" id="admin-station-filter-tabs">
+                    <button class="tab-btn active" data-filter="all">Tümü</button>
+                    <button class="tab-btn tab-t1" data-filter="T1">T1</button>
+                    <button class="tab-btn tab-t2" data-filter="T2">T2</button>
+                    <button class="tab-btn tab-t3" data-filter="T3">T3</button>
+                    <button class="tab-btn tab-t4" data-filter="T4">T4</button>
+                    <button class="tab-btn tab-kiosk" data-filter="KIOSK">Kiosk (105)</button>
+                    <button class="tab-btn tab-bayi" data-filter="BAYI">Bayi (374)</button>
+                </div>
+            </div>
+
+            <div class="panel-scroll-area" id="admin-stations-list">
+                <div class="loading-state">Noktalar yükleniyor...</div>
+            </div>
+        </aside>
+
+        <!-- ALT HIZLI ARIZA BİLDİRİM ŞERİDİ (ADMIN BOTTOM QUICK DOCK) -->
+        <div class="bottom-quick-fault-dock">
+            <form class="quick-fault-box" id="form-quick-fault-admin" onsubmit="handleQuickFaultInputSubmit(event)">
+                <div class="dock-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                </div>
+                <input type="text" id="input-quick-fault-admin" class="dock-input" placeholder="Hızlı Arıza Yapıştır" autocomplete="off">
+                <div class="dock-btns">
+                    <button type="submit" class="btn btn-primary btn-sm" title="Arıza metnini ayrıştır ve haritaya uygula">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>İşle</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('modal-add-fault')">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>Manuel Giriş</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         ORTAK SAĞ AÇILIR İNCELEME PANELİ (DETAIL INSPECTOR PANEL)
+         ========================================================================= -->
+    <aside class="detail-inspector" id="detail-panel" style="display:none;">
+        <div class="inspector-header">
+            <div class="inspector-title-wrap">
+                <span class="category-badge" id="detail-badge">TRAMVAY İSTASYONU</span>
+                <h2 id="detail-name" class="inspector-name">-</h2>
+                <div class="inspector-addr" id="detail-address">-</div>
+            </div>
+            <button class="btn-text-close" id="btn-close-detail" onclick="closeDetailPanel()" title="Kapat">&times;</button>
+        </div>
+
+        <div class="inspector-admin-bar" id="admin-action-bar" style="display:none;">
+            <span class="admin-bar-label">YÖNETİCİ İŞLEMLERİ:</span>
+            <div class="admin-bar-btns" id="admin-buttons-container"></div>
+        </div>
+
+        <div class="inspector-body">
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <span class="metric-label">Araçtan / Üsten Mesafe</span>
+                    <strong class="metric-val" id="detail-distance">- km</strong>
+                    <span class="metric-sub" id="detail-drive-time">Sürüş: ~- dk</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Hat / Kategori</span>
+                    <div class="metric-tags" id="detail-lines">-</div>
+                </div>
+            </div>
+
+            <div class="inspector-section">
+                <div class="section-head-bar">
+                    <span class="section-title" id="detail-section-title">İstasyon Donanım Cihazları</span>
+                    <div class="section-head-right">
+                        <button class="btn btn-xs btn-primary" id="btn-add-station-device" style="display:none;">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            <span>Cihaz Ekle</span>
+                        </button>
+                        <span class="count-pill" id="detail-device-count">8 Cihaz</span>
+                    </div>
+                </div>
+                <div class="devices-stack" id="detail-device-list"></div>
+            </div>
+
+            <div class="inspector-section">
+                <div class="section-head-bar">
+                    <span class="section-title">En Yakın Alternatif Dolum Noktaları</span>
+                    <span class="count-pill">3 Nokta</span>
+                </div>
+                <div class="nearest-stack" id="detail-nearest-list"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- SAĞ ALT KATMAN KONTROL KUTUSU -->
+    <div class="floating-layer-control">
+        <div class="layer-title">Harita Görünümü</div>
+        <label class="layer-item">
+            <input type="checkbox" id="toggle-route" checked>
+            <span>Sürüş Rotası</span>
+        </label>
+        <label class="layer-item">
+            <input type="checkbox" id="toggle-faults" checked>
+            <span>Aktif Arızalar</span>
+        </label>
+        <label class="layer-item">
+            <input type="checkbox" id="toggle-lines">
+            <span>Tramvay Hatları</span>
+        </label>
+        <label class="layer-item">
+            <input type="checkbox" id="toggle-stations">
+            <span>İstasyonlar</span>
+        </label>
+        <label class="layer-item layer-subitem admin-only-filter">
+            <input type="checkbox" id="toggle-station-names" checked>
+            <span>İstasyon İsimleri</span>
+        </label>
+        <label class="layer-item">
+            <input type="checkbox" id="toggle-kiosks">
+            <span>Kiosklar</span>
+        </label>
+        <label class="layer-item layer-subitem admin-only-filter">
+            <input type="checkbox" id="toggle-kiosk-names">
+            <span>Kiosk İsimleri</span>
+        </label>
+        <label class="layer-item">
+            <input type="checkbox" id="toggle-bayiler">
+            <span>Yetkili Bayiler</span>
+        </label>
+    </div>
+
+    <!-- KOORDİNAT SEÇME MODU BİLGİ BANT -->
+    <div class="coord-picker-banner" id="map-coord-picker-banner" style="display:none;">
+        <div class="coord-picker-text">Kiosk konumunu belirlemek için haritada istediğiniz yere tıklayın.</div>
+        <button class="btn btn-xs btn-outline-light" id="btn-cancel-coord-pick" onclick="cancelPickingCoordinates()">İptal</button>
+    </div>
+
+    <!-- =========================================================================
+         ORTAK MODALLAR (SHARED MODALS)
+         ========================================================================= -->
+
+    <!-- 2. HIZLI ARIZA BİLDİRİM MODALI (SADE & MODERN) -->
+    <div class="modal-overlay" id="modal-add-fault">
+        <div class="modal-window modal-wide">
+            <div class="modal-top">
+                <div>
+                    <div class="modal-heading">Yeni Arıza Bildirimi</div>
+                    <div class="modal-subheading">Lokasyon ve arıza tipini belirleyerek kaydı sisteme iletin.</div>
+                </div>
+                <button class="btn-text-close" onclick="closeModal('modal-add-fault')">&times;</button>
+            </div>
+
+            <form id="form-manual-fault" onsubmit="handleAddFaultSubmit(event)">
+                <div class="form-field">
+                    <label for="add-fault-location">Lokasyon (İstasyon veya Kiosk Adı):</label>
+                    <input type="text" id="add-fault-location" class="input-dark" placeholder="Örn: Düvenönü, Kumarlı, Meydan..." list="datalist-fault-locations" required autocomplete="off">
+                    <datalist id="datalist-fault-locations"></datalist>
+                </div>
+
+                <div class="form-field">
+                    <label>Arıza Türü:</label>
+                    <div class="fault-type-grid" id="fault-type-selector">
+                        <div class="fault-choice-card active" data-type="TURNIKE_KACAK" onclick="selectFaultTypeChoice(this, 'TURNIKE_KACAK', 'Turnike Kaçak Düştü (Enerji Yok)')">
+                            <div class="fault-choice-top">
+                                <span class="fault-choice-title">Turnike Kaçak / Elektrik Yok</span>
+                                <span class="fault-point-chip urgent">ACİL</span>
+                            </div>
+                            <span class="fault-choice-sub">Turnikeler kilitlendi veya enerji kesildi</span>
+                        </div>
+
+                        <div class="fault-choice-card" data-type="KIOSK_ARIZASI" onclick="selectFaultTypeChoice(this, 'KIOSK_ARIZASI', 'Kiosk Dolum Arızası')">
+                            <div class="fault-choice-top">
+                                <span class="fault-choice-title">Kiosk / Kart Dolum Arızası</span>
+                                <span class="fault-point-chip high">YÜKSEK</span>
+                            </div>
+                            <span class="fault-choice-sub">Para almıyor veya kart basmıyor</span>
+                        </div>
+
+                        <div class="fault-choice-card" data-type="TURNIKE_ARIZASI" onclick="selectFaultTypeChoice(this, 'TURNIKE_ARIZASI', 'Turnike Mekanik / Kart Okuma Arızası')">
+                            <div class="fault-choice-top">
+                                <span class="fault-choice-title">Turnike Mekanik Arızası</span>
+                                <span class="fault-point-chip medium">ORTA</span>
+                            </div>
+                            <span class="fault-choice-sub">Kart okumuyor veya kanat dönmüyor</span>
+                        </div>
+
+                        <div class="fault-choice-card" data-type="IADE_VALIDATORU" onclick="selectFaultTypeChoice(this, 'IADE_VALIDATORU', 'İade Validatörü Arızası')">
+                            <div class="fault-choice-top">
+                                <span class="fault-choice-title">İade Validatörü Arızası</span>
+                                <span class="fault-point-chip low">DÜŞÜK</span>
+                            </div>
+                            <span class="fault-choice-sub">Çıkıştaki iade cihazı kart okumuyor</span>
+                        </div>
+                    </div>
+                    <input type="hidden" id="add-fault-type" value="TURNIKE_KACAK">
+                </div>
+
+                <div class="form-field">
+                    <label for="add-fault-text">Arıza Açıklaması:</label>
+                    <input type="text" id="add-fault-text" class="input-dark" value="Turnike Kaçak Düştü (Enerji Yok)" required>
+                </div>
+
+                <input type="hidden" id="add-fault-resp" value="DAHILI">
+
+                <div class="modal-bottom">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-fault')">İptal</button>
+                    <button type="submit" class="btn btn-primary">Arızayı Sisteme Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. KİOSK YÖNETİM TABLOSU MODALI -->
+    <div class="modal-overlay" id="modal-kiosk-manager">
+        <div class="modal-window modal-window-wide">
+            <div class="modal-top">
+                <div>
+                    <div class="modal-heading">Otomatik Kiosk Veritabanı Yönetimi</div>
+                    <div class="modal-subheading">Tüm 105 kart dolum kioskunu listeleyin, arayın ve düzenleyin.</div>
+                </div>
+                <button class="btn-text-close" onclick="closeModal('modal-kiosk-manager')">&times;</button>
+            </div>
+            <div class="table-action-bar">
+                <input type="text" id="kiosk-table-search" class="input-dark flex-1" placeholder="Kiosk adı veya adrese göre ara...">
+                <button class="btn btn-primary btn-sm" onclick="openAddKioskModal()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <span>Yeni Kiosk Tanımla</span>
+                </button>
+            </div>
+            <div class="table-scroll-area">
+                <table class="minimal-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 70px;">Kod</th>
+                            <th>Kiosk Adı</th>
+                            <th>Konum / Adres</th>
+                            <th>Sorumluluk</th>
+                            <th>Durum</th>
+                            <th style="text-align:right;">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kiosk-table-body"></tbody>
+                </table>
+            </div>
+            <div class="modal-bottom">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-kiosk-manager')">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. SAHA OPERASYON, SİSTEM RAPORLAMA VE BAKIM PLANLAMA MERKEZİ MODALI -->
+    <div class="modal-overlay" id="modal-report-manager">
+        <div class="modal-window modal-window-wide" style="max-width: 680px; width: 90vw;">
+            <div class="modal-top" style="margin-bottom: 10px;">
+                <div>
+                    <div class="modal-heading">Raporlama ve Periyodik Bakım Merkezi</div>
+                    <div class="modal-subheading">Saha arıza raporları üretin, Kiosk (TSP 2-Opt) ve Turnike bakım rotaları planlayın.</div>
+                </div>
+                <button class="btn-text-close" onclick="closeModal('modal-report-manager')">&times;</button>
+            </div>
+
+            <!-- TAB NAVIGATOR -->
+            <div class="report-tab-nav">
+                <button type="button" class="report-tab-btn active" id="tab-btn-fault-report" onclick="switchReportTab('fault')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                    <span>Sistem Arıza Raporu</span>
+                </button>
+                <button type="button" class="report-tab-btn" id="tab-btn-kiosk-maint" onclick="switchReportTab('kiosk')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                    <span>Kiosk Bakım Planı</span>
+                </button>
+                <button type="button" class="report-tab-btn" id="tab-btn-turnike-maint" onclick="switchReportTab('turnike')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                    <span>Turnike Bakım Planı</span>
+                </button>
+            </div>
+
+            <!-- TAB 1: ARIZA RAPORU FORMU -->
+            <div id="tab-panel-fault" class="form-compact" style="background: var(--bg-card-sub); border: 1px solid var(--border-card); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 14px;">
+                <form id="form-generate-report" onsubmit="handleGenerateReportSubmit(event)">
+                    <div class="form-row-2">
+                        <div class="form-field">
+                            <label for="report-title-input">Rapor Başlığı</label>
+                            <input type="text" id="report-title-input" class="input-dark" value="Kayseri Ulaşım Saha Operasyon Raporu" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="report-format-select">Çıktı Formatı</label>
+                            <select id="report-format-select" class="input-dark">
+                                <option value="HEPSI">PDF + Excel İkili Paket (Önerilen)</option>
+                                <option value="EXCEL">Sadece Excel (.xlsx)</option>
+                                <option value="PDF">Sadece PDF (.pdf)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: flex-end; margin-top: 2px;">
+                        <div class="form-field" style="flex: 1; margin-bottom: 0;">
+                            <label for="report-range-select">Tarih Filtresi</label>
+                            <select id="report-range-select" class="input-dark">
+                                <option value="TUMU">Tüm Zamanlar</option>
+                                <option value="BU_AY">Bu Ay (Cari Dönem)</option>
+                                <option value="SON_30_GUN">Son 30 Gün</option>
+                                <option value="SON_7_GUN">Son 7 Gün</option>
+                                <option value="BUGUN">Son 24 Saat</option>
+                            </select>
+                        </div>
+                        <div class="form-field" style="flex: 1; margin-bottom: 0;">
+                            <label for="report-scope-select">Rapor Kapsamı</label>
+                            <select id="report-scope-select" class="input-dark">
+                                <option value="TUM_SISTEM">Tüm Sistem Özet</option>
+                                <option value="SADECE_KIOSKLAR">Sadece Otomatik Kiosklar (105 Kiosk)</option>
+                                <option value="SADECE_COZULENLER">Sadece Çözülen Arızalar</option>
+                                <option value="SADECE_BEKLEYENLER">Sadece Bekleyen Arızalar</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="btn-submit-generate-report" style="height: 32px; padding: 0 14px; font-size: 11.5px; white-space: nowrap;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>RAPOR ÜRET</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TAB 2: KIOSK BAKIM PLANLAMA -->
+            <div id="tab-panel-kiosk" class="form-compact" style="display:none; background: var(--bg-card-sub); border: 1px solid var(--border-card); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 14px;">
+                <div style="margin-bottom: 10px;">
+                    <div style="font-weight:700; font-size:13px; color:var(--text-head); margin-bottom:2px;">Otomatik Kiosk Periyodik Bakım Rota Planı</div>
+                    <div style="font-size:11.5px; color:var(--text-sub);">105 Kiosk için 10 Algoritmalı Rota Optimizasyonu (Ensemble + 2-Opt) ile bakım rotası ve Excel üretir.</div>
+                </div>
+
+                <div class="maint-location-picker">
+                    <label class="maint-picker-label">Başlangıç Konumu & Araç Seçimi</label>
+                    <div class="maint-picker-cards">
+                        <button type="button" class="maint-picker-card active-emerald" onclick="window.selectMaintenanceStartVehicle('kiosk', '861000000000001', this)">
+                            <span class="maint-card-dot dot-emerald"></span>
+                            <div class="maint-card-info">
+                                <div class="maint-card-title">38 BKM 001</div>
+                                <div class="maint-card-sub">1. Saha Hizmet Aracı</div>
+                            </div>
+                        </button>
+                        <button type="button" class="maint-picker-card" onclick="window.selectMaintenanceStartVehicle('kiosk', '861000000000002', this)">
+                            <span class="maint-card-dot dot-amber"></span>
+                            <div class="maint-card-info">
+                                <div class="maint-card-title">38 BKM 002</div>
+                                <div class="maint-card-sub">2. Saha Hizmet Aracı</div>
+                            </div>
+                        </button>
+                        <button type="button" class="maint-picker-card" onclick="window.selectMaintenanceStartVehicle('kiosk', 'DEPOT', this)">
+                            <svg class="maint-card-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                            <div class="maint-card-info">
+                                <div class="maint-card-title">Ana Üs (Depo)</div>
+                                <div class="maint-card-sub">Kayseri Ulaşım Garajı</div>
+                            </div>
+                        </button>
+                    </div>
+                    <input type="hidden" id="select-kiosk-start-type" value="861000000000001">
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                    <button type="button" class="btn btn-primary" id="btn-plan-kiosk-maintenance" onclick="executeKioskMaintenancePlan()" style="height: 32px; padding: 0 16px; font-size: 11.5px; white-space: nowrap;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                        <span>KİOSK ROTA ÜRET</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 3: TURNİKE BAKIM PLANLAMA -->
+            <div id="tab-panel-turnike" class="form-compact" style="display:none; background: var(--bg-card-sub); border: 1px solid var(--border-card); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 14px;">
+                <div style="margin-bottom: 10px;">
+                    <div style="font-weight:700; font-size:13px; color:var(--text-head); margin-bottom:2px;">Turnike Periyodik Bakım Rota Planı</div>
+                    <div style="font-size:11.5px; color:var(--text-sub);">Turnikeleri tramvay hatları sırasına göre dizeler ve hat bazlı Bakım Excel listesi üretir.</div>
+                </div>
+
+                <div class="maint-location-picker">
+                    <label class="maint-picker-label">Başlangıç Konumu & Araç Seçimi</label>
+                    <div class="maint-picker-cards">
+                        <button type="button" class="maint-picker-card active-emerald" onclick="window.selectMaintenanceStartVehicle('turnike', '861000000000001', this)">
+                            <span class="maint-card-dot dot-emerald"></span>
+                            <div class="maint-card-info">
+                                <div class="maint-card-title">38 BKM 001</div>
+                                <div class="maint-card-sub">1. Saha Hizmet Aracı</div>
+                            </div>
+                        </button>
+                        <button type="button" class="maint-picker-card" onclick="window.selectMaintenanceStartVehicle('turnike', '861000000000002', this)">
+                            <span class="maint-card-dot dot-amber"></span>
+                            <div class="maint-card-info">
+                                <div class="maint-card-title">38 BKM 002</div>
+                                <div class="maint-card-sub">2. Saha Hizmet Aracı</div>
+                            </div>
+                        </button>
+                        <button type="button" class="maint-picker-card" onclick="window.selectMaintenanceStartVehicle('turnike', 'DEPOT', this)">
+                            <svg class="maint-card-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                            <div class="maint-card-info">
+                                <div class="maint-card-title">Ana Üs (Depo)</div>
+                                <div class="maint-card-sub">Kayseri Ulaşım Garajı</div>
+                            </div>
+                        </button>
+                    </div>
+                    <input type="hidden" id="select-turnike-start-type" value="861000000000001">
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <label style="font-size:11px; font-weight:600; color:var(--text-sub);">Hat Filtresi:</label>
+                        <select id="select-turnike-line-filter" class="input-dark" style="width: 170px; height: 32px; font-size: 11.5px;">
+                            <option value="ALL">Tüm Hatlar (T1-T4)</option>
+                            <option value="T1">T1 (Organize-İldem)</option>
+                            <option value="T2">T2 (Meydan-Talas)</option>
+                            <option value="T3">T3 (Kumarlı-Anayurt)</option>
+                            <option value="T4">T4 (Şehir Hast.)</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="btn-plan-turnike-maintenance" onclick="executeTurnikeMaintenancePlan()" style="height: 32px; padding: 0 16px; font-size: 11.5px; white-space: nowrap;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span>TURNİKE ROTA ÜRET</span>
+                    </button>
+                </div>
+            </div>
+
+
+
+            <!-- VERİTABANINA KAYITLI RAPOR GEÇMİŞİ -->
+            <div style="font-weight:700; font-size:13px; margin-bottom:6px; color:var(--text-head); display:flex; align-items:center; gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span>Veritabanına Kayıtlı Rapor Geçmişi</span>
+            </div>
+
+            <div class="table-scroll-area">
+                <table class="minimal-table" style="width:100%; table-layout: fixed;">
+                    <thead>
+                        <tr>
+                            <th style="width: 34%;">Rapor Detayı</th>
+                            <th style="width: 20%;">Format & Kapsam</th>
+                            <th style="width: 20%;">Özet Bilgi</th>
+                            <th style="width: 28%; text-align:right;">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="report-history-table-body">
+                        <tr><td colspan="4" class="loading-state">Rapor geçmişi yükleniyor...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-bottom">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-report-manager')">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 9. PASİF / HİZMET DIŞI CİHAZ VE İSTASYON YÖNETİMİ MODALI -->
+    <div class="modal-overlay" id="modal-disabled-manager">
+        <div class="modal-window modal-window-wide" style="max-width: 720px; width: 92vw;">
+            <div class="modal-top" style="margin-bottom: 10px;">
+                <div>
+                    <div class="modal-heading" style="color:var(--c-danger, #ef4444); display:flex; align-items:center; gap:8px;">
+                        <span>Pasif & Hizmet Dışı Eleman Yönetim Merkezi</span>
+                    </div>
+                    <div class="modal-subheading">Sistemde devre dışı bırakılmış istasyonlar ve kioskları inceleyin, haritada konumlandırın ve yeniden aktifleştirin.</div>
+                </div>
+                <button class="btn-text-close" onclick="closeModal('modal-disabled-manager')">&times;</button>
+            </div>
+
+            <div class="table-scroll-area" style="max-height: 360px;">
+                <table class="minimal-table" style="width:100%; table-layout: fixed;">
+                    <thead>
+                        <tr>
+                            <th style="width: 38%;">Eleman Adı & Kod</th>
+                            <th style="width: 22%;">Tür & Lokasyon</th>
+                            <th style="width: 22%;">Mevcut Durum</th>
+                            <th style="width: 18%; text-align:right;">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="disabled-items-table-body">
+                        <tr><td colspan="4" class="loading-state">Pasif elemanlar yükleniyor...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-bottom" style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11.5px; color: var(--text-muted);" id="disabled-items-count-summary">Toplam 0 pasif kayıt</span>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-disabled-manager')">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SAHA GÖREV ARAÇ SEÇİM MODALI -->
+    <div class="modal-overlay" id="modal-saha-vehicle-select" style="z-index: 10000;">
+        <div class="modal-window" style="max-width: 480px; width: 92vw;">
+            <div class="modal-top">
+                <div>
+                    <div class="modal-heading" style="color: var(--c-primary, #10b981); display:flex; align-items:center; gap:8px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                        <span>Saha Görev Aracınızı Seçiniz</span>
+                    </div>
+                    <div class="modal-subheading" style="margin-top: 4px; font-size: 11.5px; color: var(--text-sub);">Lütfen bugün sahada aktif olarak sürdüğünüz hizmet aracını seçiniz. Harita ve görev listeniz seçtiğiniz araca göre filtrelenecektir.</div>
+                </div>
+                <button class="btn-text-close" onclick="closeModal('modal-saha-vehicle-select')">&times;</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0;">
+                <button type="button" class="btn-vehicle-route-select" id="btn-saha-select-093" onclick="window.setSahaVehicleAction('861000000000001')" style="padding: 12px; border: 2px solid var(--border-card); border-radius: 10px; text-align: left; background: var(--bg-card); cursor: pointer;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-weight: 800; color: #10b981; font-size: 14px;">38 BKM 001</span>
+                        <span style="font-size: 10px; background: rgba(16,185,129,0.15); color: #10b981; padding: 2px 6px; border-radius: 4px; font-weight: 700;">1. ARAÇ</span>
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-head); font-weight: 700; margin-bottom: 2px;">AUS Arıza Hizmet Aracı</div>
+                    <div style="font-size: 10px; color: var(--text-muted);">Asıl Saha Garaj Ekibi</div>
+                </button>
+
+                <button type="button" class="btn-vehicle-route-select" id="btn-saha-select-089" onclick="window.setSahaVehicleAction('861000000000002')" style="padding: 12px; border: 2px solid var(--border-card); border-radius: 10px; text-align: left; background: var(--bg-card); cursor: pointer;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-weight: 800; color: #f59e0b; font-size: 14px;">38 BKM 002</span>
+                        <span style="font-size: 10px; background: rgba(245,158,11,0.15); color: #f59e0b; padding: 2px 6px; border-radius: 4px; font-weight: 700;">2. ARAÇ</span>
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-head); font-weight: 700; margin-bottom: 2px;">Mobil Destek Aracı</div>
+                    <div style="font-size: 10px; color: var(--text-muted);">Yedek Saha Destek Ekibi</div>
+                </button>
+            </div>
+
+            <div class="modal-bottom" style="display: flex; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('modal-saha-vehicle-select')">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CANLI ARAÇ GPS & TELEMETRİ YÖNETİM MODALI -->
+    <div class="modal-overlay" id="modal-telemetri">
+        <div class="modal-window modal-window-wide" style="max-width: 580px; width: 94vw; padding: 18px 20px;">
+            <div class="modal-top" style="margin-bottom: 12px;">
+                <div>
+                    <div class="modal-heading" style="display:flex; align-items:center; gap:8px; font-size: 15px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                        <span>Canlı Araç GPS & Telemetri Yönetimi</span>
+                    </div>
+                    <div class="modal-subheading" style="font-size: 11px; margin-top: 2px;">Kayseri Ulaşım Rota Takip portalından canlı SignalR GPS verilerini yönetin.</div>
+                </div>
+                <button class="btn-text-close" onclick="closeModal('modal-telemetri')">&times;</button>
+            </div>
+
+            <div class="modal-body" style="padding: 4px 0;">
+
+                <!-- OTURUM AKIŞ BİLGİSİ ROZETİ -->
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; background:var(--bg-card-sub); padding:8px 12px; border-radius:6px; border:1px solid var(--border-subtle);">
+                    <div style="font-size:12px; font-weight:700; color:var(--text-head);">SignalR Canlı Akış Bağlantısı</div>
+                    <span id="telemetry-modal-mode-badge" class="status-pill status-pill-passive" style="font-size: 10.5px; padding: 3px 8px;">PASİF</span>
+                </div>
+
+                <!-- ÇİFT ARAÇ SPLIT KARTLARI -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                    
+                    <!-- ARAÇ 1: 38 BKM 001 -->
+                    <div class="telemetry-info-card" style="background: var(--bg-card-sub); border: 1px solid var(--border-subtle); border-top: 3px solid #10b981; border-radius: 8px; padding: 10px 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
+                            <div style="font-weight: 800; color: #10b981; font-size: 13px;">
+                                38 BKM 001
+                            </div>
+                            <button type="button" class="btn btn-xs btn-outline" onclick="window.focusOnVehicle('861000000000001'); closeModal('modal-telemetri');" style="font-size:10px; padding:2px 6px;">
+                                Odaklan
+                            </button>
+                        </div>
+                        <div style="font-size: 11px; display: flex; flex-direction: column; gap: 4px;">
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 10px;">Hız:</span>
+                                <strong id="telemetry-modal-speed-093" style="color:#10b981; font-weight:700;">0 km/s</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 10px;">Son GPS:</span>
+                                <span id="telemetry-modal-last-sync-093" style="color: var(--text-head); font-size:10.5px; font-weight:700;">-</span>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 10px;">Konum:</span>
+                                <span id="telemetry-modal-coords-093" style="color: var(--text-body); font-size:10px; font-family:var(--font-mono); font-weight:600;">38.72194, 35.48729</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ARAÇ 2: 38 BKM 002 -->
+                    <div class="telemetry-info-card" style="background: var(--bg-card-sub); border: 1px solid var(--border-subtle); border-top: 3px solid #f59e0b; border-radius: 8px; padding: 10px 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
+                            <div style="font-weight: 800; color: #f59e0b; font-size: 13px;">
+                                38 BKM 002
+                            </div>
+                            <button type="button" class="btn btn-xs btn-outline" onclick="window.focusOnVehicle('861000000000002'); closeModal('modal-telemetri');" style="font-size:10px; padding:2px 6px;">
+                                Odaklan
+                            </button>
+                        </div>
+                        <div style="font-size: 11px; display: flex; flex-direction: column; gap: 4px;">
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 10px;">Hız:</span>
+                                <strong id="telemetry-modal-speed-089" style="color:#10b981; font-weight:700;">0 km/s</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 10px;">Son GPS:</span>
+                                <span id="telemetry-modal-last-sync-089" style="color: var(--text-head); font-size:10.5px; font-weight:700;">-</span>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); font-size: 10px;">Konum:</span>
+                                <span id="telemetry-modal-coords-089" style="color: var(--text-body); font-size:10px; font-family:var(--font-mono); font-weight:600;">38.73150, 35.49820</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div id="telemetry-modal-error" style="display:none; margin-bottom: 10px; padding: 6px 10px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 6px; font-size: 11px;"></div>
+
+                <!-- OTURUM ANAHTARI (SESSION KEY) GİRİŞ ALANI -->
+                <div class="form-field" style="margin-bottom: 12px;">
+                    <label style="font-size: 11px; font-weight: 700; color: var(--text-head); margin-bottom: 4px; display: block;">
+                        Oturum Anahtarı (ASP.NET_SessionId)
+                    </label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="telemetry-modal-input-cookie" placeholder="Örn: ASP.NET_SessionId=abcdef123456..." class="input-dark" style="flex: 1; height: 36px; font-size: 11px; padding: 0 10px;" oninput="window.onSessionKeyInputChange()">
+                        <button type="button" class="btn btn-primary" id="btn-telemetry-start" onclick="window.startLiveTelemetryAction()" style="display: inline-flex; align-items: center; gap: 6px; height: 36px; font-size: 12px;" disabled>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            <span id="txt-btn-telemetry-start">Canlı Akışı Başlat</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="btn-telemetry-stop" onclick="window.stopLiveTelemetryAction()" style="display: none; align-items: center; gap: 6px; height: 36px; font-size: 12px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                            <span>Durdur</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-bottom" style="margin-top: 10px; display: flex; justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--border-subtle, #334155);">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-telemetri')" style="height: 32px; padding: 0 14px; font-size: 12px;">Kapat</button>
+            </div>
+        </div>
+    </div>le cx="12" cy="12" r="10"></circle><polygon points="12 8 8 12 12 16 12 8"></polygon></svg>
+                        <span>Haritada Araca Odaklan</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-bottom" style="margin-top: 12px; display: flex; justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--border-subtle, #334155);">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-telemetri')" style="height: 32px; padding: 0 14px; font-size: 12px;">Kapat</button>
+            </div>
+        </div>
+    </div>
+                        <span>Saha Excel Listesini İndir (.xlsx)</span>
+                    </a>
+                </div>
+                <div style="font-size:12.5px; color:var(--text-sub); display:flex; gap:16px;" id="txt-maint-plan-stats">
+                    <!-- Stats populated dynamically -->
+                </div>
+            </div>
+
+            <div class="modal-bottom" style="margin-top:16px;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-maintenance-manager')">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. KİOSK EKLEME MODALI -->
+    <div class="modal-overlay" id="modal-add-kiosk">
+        <div class="modal-window">
+            <div class="modal-top">
+                <div class="modal-heading">Yeni Otomatik Kiosk Tanımla</div>
+                <button class="btn-text-close" onclick="closeModal('modal-add-kiosk')">&times;</button>
+            </div>
+            <form id="form-add-kiosk" onsubmit="handleAddKioskSubmit(event)">
+                <div class="form-field">
+                    <label>Kiosk Adı</label>
+                    <input type="text" id="add-kiosk-name" class="input-dark" placeholder="Örn: TALAS MEYDAN KİOSK" required>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Enlem (Lat)</label>
+                        <input type="number" step="any" id="add-kiosk-lat" class="input-dark mono" placeholder="38.720000" required>
+                    </div>
+                    <div class="form-field">
+                        <label>Boylam (Lon)</label>
+                        <input type="number" step="any" id="add-kiosk-lon" class="input-dark mono" placeholder="35.500000" required>
+                    </div>
+                </div>
+                <div class="form-field">
+                    <button type="button" class="btn btn-secondary btn-xs" onclick="startPickingCoordinates('add')">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                        Haritaya Tıklayarak Konum Seç
+                    </button>
+                </div>
+                <div class="form-field">
+                    <label>Adres / Konum Tarifi</label>
+                    <input type="text" id="add-kiosk-address" class="input-dark" placeholder="Örn: Talas Meydan Pazar Yeri Girişi" required>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Sorumluluk</label>
+                        <select id="add-kiosk-resp" class="input-dark">
+                            <option value="DAHILI">Dahili Ekip</option>
+                            <option value="TASERON">Taşeron</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Durum</label>
+                        <select id="add-kiosk-status" class="input-dark">
+                            <option value="NORMAL">Normal (Çalışıyor)</option>
+                            <option value="ARIZALI">Arızalı</option>
+                            <option value="BAKIMDA">Bakımda</option>
+                            <option value="KAPALI">Kapalı</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-bottom">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-kiosk')">İptal</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 5. KİOSK DÜZENLEME MODALI -->
+    <div class="modal-overlay" id="modal-edit-kiosk">
+        <div class="modal-window">
+            <div class="modal-top">
+                <div class="modal-heading">Kiosk Bilgilerini Düzenle</div>
+                <button class="btn-text-close" onclick="closeModal('modal-edit-kiosk')">&times;</button>
+            </div>
+            <form id="form-edit-kiosk" onsubmit="handleEditKioskSubmit(event)">
+                <input type="hidden" id="edit-kiosk-code">
+                <div class="form-field">
+                    <label>Kiosk Kodu</label>
+                    <input type="text" id="edit-kiosk-code-display" class="input-dark mono" disabled>
+                </div>
+                <div class="form-field">
+                    <label>Kiosk Adı</label>
+                    <input type="text" id="edit-kiosk-name" class="input-dark" required>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Enlem</label>
+                        <input type="number" step="any" id="edit-kiosk-lat" class="input-dark mono" required>
+                    </div>
+                    <div class="form-field">
+                        <label>Boylam</label>
+                        <input type="number" step="any" id="edit-kiosk-lon" class="input-dark mono" required>
+                    </div>
+                </div>
+                <div class="form-field">
+                    <button type="button" class="btn btn-secondary btn-xs" onclick="startPickingCoordinates('edit')">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                        Haritaya Tıklayarak Konumu Güncelle
+                    </button>
+                </div>
+                <div class="form-field">
+                    <label>Adres</label>
+                    <input type="text" id="edit-kiosk-address" class="input-dark" required>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Sorumluluk</label>
+                        <select id="edit-kiosk-resp" class="input-dark">
+                            <option value="DAHILI">Dahili Ekip</option>
+                            <option value="TASERON">Taşeron</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Durum</label>
+                        <select id="edit-kiosk-status" class="input-dark">
+                            <option value="NORMAL">Normal (Çalışıyor)</option>
+                            <option value="ARIZALI">Arızalı</option>
+                            <option value="BAKIMDA">Bakımda</option>
+                            <option value="KAPALI">Kapalı</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-bottom">
+                    <button type="button" class="btn btn-danger btn-sm mr-auto" onclick="confirmDeleteKiosk(document.getElementById('edit-kiosk-code').value)">Kiosku Sil</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-edit-kiosk')">İptal</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 6. İKİ KİOSK TAKAS (SWAP) MODALI -->
+    <div class="modal-overlay" id="modal-swap-kiosk">
+        <div class="modal-window">
+            <div class="modal-top">
+                <div class="modal-heading">İki Kiosk Konumunu Takas Et (Swap)</div>
+                <button class="btn-text-close" onclick="closeModal('modal-swap-kiosk')">&times;</button>
+            </div>
+            <form id="form-swap-kiosk" onsubmit="handleSwapKioskSubmit(event)">
+                <div class="form-field">
+                    <label>1. Kiosk</label>
+                    <select id="swap-kiosk-1" class="input-dark" required></select>
+                </div>
+                <div class="form-field">
+                    <label>2. Kiosk (Takas Edilecek)</label>
+                    <select id="swap-kiosk-2" class="input-dark" required></select>
+                </div>
+                <div class="info-note">
+                    Seçilen iki kioskun GPS koordinatları ve adres bilgileri karşılıklı olarak yer değiştirecektir.
+                </div>
+                <div class="modal-bottom">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-swap-kiosk')">İptal</button>
+                    <button type="submit" class="btn btn-primary">Takası Onayla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 7. İSTASYON CİHAZI EKLEME MODALI -->
+    <div class="modal-overlay" id="modal-add-device">
+        <div class="modal-window">
+            <div class="modal-top">
+                <div class="modal-heading">İstasyona Yeni Cihaz Ekle</div>
+                <button class="btn-text-close" onclick="closeModal('modal-add-device')">&times;</button>
+            </div>
+            <form id="form-add-device" onsubmit="handleAddDeviceSubmit(event)">
+                <input type="hidden" id="add-dev-station-code">
+                <div class="form-field">
+                    <label>Cihaz Türü</label>
+                    <select id="add-dev-type" class="input-dark" required>
+                        <option value="TURNIKE">Turnike</option>
+                        <option value="IADE_VALIDATORU">İade Validatörü</option>
+                        <option value="KIOSK">İstasyon Kiosku</option>
+                        <option value="SERBEST_KAPI">Serbest Geçiş Kapısı</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label>Cihaz Sıra No</label>
+                    <input type="number" id="add-dev-no" class="input-dark" value="5" min="1" max="99" required>
+                </div>
+                <div class="form-field">
+                    <label>Cihaz Başlığı / Etiket</label>
+                    <input type="text" id="add-dev-label" class="input-dark" placeholder="Örn: Turnike 5" required>
+                </div>
+                <div class="form-field">
+                    <label>Açıklama</label>
+                    <input type="text" id="add-dev-desc" class="input-dark" placeholder="Örn: Giriş ek turnikesi">
+                </div>
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Sorumluluk</label>
+                        <select id="add-dev-resp" class="input-dark">
+                            <option value="DAHILI">Dahili Ekip</option>
+                            <option value="TASERON">Taşeron</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Durum</label>
+                        <select id="add-dev-status" class="input-dark">
+                            <option value="NORMAL">Normal (Çalışıyor)</option>
+                            <option value="ARIZALI">Arızalı</option>
+                            <option value="BAKIMDA">Bakımda</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-bottom">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-device')">İptal</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 8. İSTASYON CİHAZI DÜZENLEME MODALI -->
+    <div class="modal-overlay" id="modal-edit-device">
+        <div class="modal-window">
+            <div class="modal-top">
+                <div class="modal-heading">Cihaz Bilgilerini Düzenle</div>
+                <button class="btn-text-close" onclick="closeModal('modal-edit-device')">&times;</button>
+            </div>
+            <form id="form-edit-device" onsubmit="handleEditDeviceSubmit(event)">
+                <input type="hidden" id="edit-dev-code">
+                <div class="form-field">
+                    <label>Cihaz Kodu</label>
+                    <input type="text" id="edit-dev-code-display" class="input-dark mono" disabled>
+                </div>
+                <div class="form-field">
+                    <label>Etiket / Başlık</label>
+                    <input type="text" id="edit-dev-label" class="input-dark" required>
+                </div>
+                <div class="form-field">
+                    <label>Açıklama</label>
+                    <input type="text" id="edit-dev-desc" class="input-dark">
+                </div>
+                <div class="form-row-2">
+                    <div class="form-field">
+                        <label>Sorumluluk</label>
+                        <select id="edit-dev-resp" class="input-dark">
+                            <option value="DAHILI">Dahili Ekip</option>
+                            <option value="TASERON">Taşeron</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label>Durum</label>
+                        <select id="edit-dev-status" class="input-dark">
+                            <option value="NORMAL">Normal</option>
+                            <option value="ARIZALI">Arızalı</option>
+                            <option value="BAKIMDA">Bakımda</option>
+                            <option value="KAPALI">Kapalı</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-bottom">
+                    <button type="button" class="btn btn-danger btn-sm mr-auto" onclick="confirmDeleteDevice(document.getElementById('edit-dev-code').value)">Cihazı Sil</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-edit-device')">İptal</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 9. CİHAZ YER DEĞİŞTİRME MODALI -->
+    <div class="modal-overlay" id="modal-relocate-device">
+        <div class="modal-window">
+            <div class="modal-top">
+                <div class="modal-heading">Cihazı Başka İstasyona Taşı</div>
+                <button class="btn-text-close" onclick="closeModal('modal-relocate-device')">&times;</button>
+            </div>
+            <form id="form-relocate-device" onsubmit="handleRelocateDeviceSubmit(event)">
+                <input type="hidden" id="relocate-dev-code">
+                <div class="form-field">
+                    <label>Taşınacak Cihaz</label>
+                    <input type="text" id="relocate-dev-name-display" class="input-dark mono" disabled>
+                </div>
+                <div class="form-field">
+                    <label>Yeni Hedef İstasyon</label>
+                    <select id="relocate-target-station" class="input-dark" required></select>
+                </div>
+                <div class="modal-bottom">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-relocate-device')">İptal</button>
+                    <button type="submit" class="btn btn-primary">Taşımayı Onayla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST BİLDİRİM ALANI -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Uygulama Modüler Scripti (ES6 Modules) -->
+    <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

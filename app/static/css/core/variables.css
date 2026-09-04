@@ -1,0 +1,130 @@
+/* ==========================================================================
+   KAYSERİ ULAŞIM - CORE VARIABLES & RESET
+   ========================================================================== */
+
+:root,
+:root[data-theme="dark"] {
+    /* Renk Paleti (Obsidian, Koyu Kömür & Kontrastlı Varlık Renkleri) */
+    --bg-base: #06090e;
+    --bg-card: #0e1522;
+    --bg-card-sub: #141c2c;
+    --bg-card-hover: #1b263b;
+    --bg-input: #080d15;
+    --bg-modal: #0d1420;
+
+    /* Sınır Çizgileri */
+    --border-subtle: #1e293b;
+    --border-card: #27354a;
+    --border-focus: #38bdf8;
+
+    /* Tipografi Renkleri */
+    --text-pure: #ffffff;
+    --text-head: #f8fafc;
+    --text-body: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-dim: #64748b;
+
+    /* Düz Varlık ve Durum Renkleri (Kesinlikle Gradyansız) */
+    --c-primary: #2563eb;
+    --c-primary-hover: #1d4ed8;
+    --c-success: #16a34a;
+    --c-success-hover: #15803d;
+    --c-danger: #dc2626;
+    --c-danger-hover: #b91c1c;
+    --c-warning: #d97706;
+    --c-cyan: #0284c7;
+    --c-purple: #9333ea;
+
+    /* Hat Renkleri */
+    --c-t1: #ef4444;
+    --c-t2: #3b82f6;
+    --c-t3: #10b981;
+    --c-t4: #f97316;
+    --c-kiosk: #a855f7;
+    --c-bayi: #06b6d4;
+    --c-vehicle: #38bdf8;
+
+    /* Tipografi */
+    --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-heading: 'Outfit', 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Yuvarlatmalar */
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 16px;
+    --r-xl: 20px;
+
+    /* Gölgeler */
+    --shadow-floating: 0 12px 36px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="light"] {
+    /* Renk Paleti (Aydınlık Tema - Slate & Kurumsal Beyaz) */
+    --bg-base: #f1f5f9;
+    --bg-card: #ffffff;
+    --bg-card-sub: #f8fafc;
+    --bg-card-hover: #e2e8f0;
+    --bg-input: #ffffff;
+    --bg-modal: #ffffff;
+
+    /* Sınır Çizgileri */
+    --border-subtle: #cbd5e1;
+    --border-card: #94a3b8;
+    --border-focus: #0284c7;
+
+    /* Tipografi Renkleri */
+    --text-pure: #0f172a;
+    --text-head: #0f172a;
+    --text-body: #334155;
+    --text-muted: #475569;
+    --text-dim: #64748b;
+
+    /* Düz Varlık ve Durum Renkleri */
+    --c-primary: #004990;
+    --c-primary-hover: #00366b;
+    --c-success: #15803d;
+    --c-success-hover: #166534;
+    --c-danger: #dc2626;
+    --c-danger-hover: #b91c1c;
+    --c-warning: #b45309;
+    --c-cyan: #0284c7;
+    --c-purple: #7e22ce;
+
+    /* Hat Renkleri */
+    --c-t1: #dc2626;
+    --c-t2: #2563eb;
+    --c-t3: #059669;
+    --c-t4: #ea580c;
+    --c-kiosk: #9333ea;
+    --c-bayi: #0891b2;
+    --c-vehicle: #0284c7;
+
+    /* Gölgeler */
+    --shadow-floating: 0 12px 36px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="light"] .brand-logo,
+:root[data-theme="light"] .brand-logo-img,
+:root[data-theme="light"] .auth-brand-logo {
+    filter: brightness(0.1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-ui);
+    background-color: var(--bg-base);
+    color: var(--text-body);
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+    user-select: none;
+    font-size: 15px;
+    line-height: 1.5;
+}

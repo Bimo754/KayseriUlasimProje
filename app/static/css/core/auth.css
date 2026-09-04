@@ -1,0 +1,155 @@
+/* ==========================================================================
+   0. ZORUNLU TAM EKRAN GİRİŞ KAPISI (MANDATORY AUTH GATE SCREEN)
+   ========================================================================== */
+
+.auth-portal-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--bg-base);
+    z-index: 5000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+body.auth-required .auth-portal-screen {
+    display: flex !important;
+}
+
+body.auth-required #shell-saha,
+body.auth-required #shell-admin,
+body.auth-required .floating-layer-control,
+body.auth-required .detail-inspector,
+body.auth-required .coord-picker-banner {
+    display: none !important;
+}
+
+.auth-card-container {
+    position: relative;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--r-xl);
+    box-shadow: var(--shadow-floating);
+    width: 100%;
+    max-width: 520px;
+    padding: 36px 32px;
+    display: flex;
+    flex-direction: column;
+}
+
+.auth-theme-toggle {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+}
+
+.auth-card-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.auth-brand-logo {
+    height: 48px;
+    max-width: 180px;
+    object-fit: contain;
+    margin-bottom: 14px;
+}
+
+.auth-main-title {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-pure);
+    letter-spacing: -0.4px;
+}
+
+.auth-sub-title {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+.auth-quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.auth-quick-item {
+    background-color: var(--bg-card-sub);
+    border: 1px solid var(--border-card);
+    border-radius: var(--r-md);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.auth-quick-item:hover {
+    background-color: var(--bg-card-hover);
+    border-color: var(--border-focus);
+}
+
+.auth-quick-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--r-md);
+    background-color: var(--bg-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.auth-quick-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.auth-quick-text strong {
+    font-size: 15px;
+    color: var(--text-pure);
+    font-family: var(--font-heading);
+    font-weight: 700;
+}
+
+.auth-quick-text span {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.auth-footer-note {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   ROL BAZLI GÖRÜNÜM KONTROLÜ (VIEW ROLE SHELL SWITCHER)
+   ========================================================================== */
+
+body.view-role-saha #shell-saha {
+    display: block !important;
+}
+
+body.view-role-saha #shell-admin {
+    display: none !important;
+}
+
+body.view-role-admin #shell-saha {
+    display: none !important;
+}
+
+body.view-role-admin #shell-admin {
+    display: block !important;
+}

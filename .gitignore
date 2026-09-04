@@ -1,0 +1,21 @@
+# Node.js & TypeScript
+node_modules/
+dist/
+npm-debug.log*
+
+# Python & Caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+
+# SQLite WAL & SHM temporary journal files
+*.db-wal
+*.db-shm
+
+# IDE & OS
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,16 @@
+services:
+  route-optimization:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kayseri_route_optimization
+    ports:
+      - "5001:5001"
+    volumes:
+      # Veritabanının konteyner yeniden başlatmalarında korunması için kalıcı bağlama
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=5001
+      - SECRET_KEY=kayseri-ulasim-staj-gizli-anahtar-2026
+    restart: unless-stopped

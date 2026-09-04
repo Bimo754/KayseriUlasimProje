@@ -1,0 +1,12 @@
+/* ==========================================================================
+   KAYSERİ ULAŞIM - ROL BAZLI KOMUTA & SAHA ROTA PORTALI (MASTER CSS INDEX)
+   ========================================================================== */
+
+@import url('./core/variables.css');
+@import url('./core/auth.css');
+@import url('./core/components.css');
+@import url('./saha/saha-header.css');
+@import url('./saha/saha-hud.css');
+@import url('./saha/saha-panels.css');
+@import url('./admin/admin.css');
+@import url('./admin/map.css');

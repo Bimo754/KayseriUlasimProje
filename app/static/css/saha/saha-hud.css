@@ -1,0 +1,451 @@
+/* ==========================================================================
+   SAHA MISSION HUD & NAVIGATION OVERLAYS
+   ========================================================================== */
+
+.mission-hud-card {
+    position: absolute;
+    top: 78px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 740px;
+    height: 46px;
+    background-color: var(--bg-card);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-card);
+    border-radius: 9999px;
+    box-shadow: var(--shadow-floating);
+    z-index: 950;
+    padding: 4px 10px 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.hud-seq-badge {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 6px;
+    border-radius: 16px;
+    background: #dc2626;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hud-seq-badge.resolved {
+    background: #16a34a;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.4);
+}
+
+.hud-seq-label {
+    display: none;
+}
+
+.hud-seq-num {
+    font-size: 12px;
+    font-weight: 900;
+    color: #ffffff;
+    line-height: 1;
+    font-family: var(--font-sans);
+    white-space: nowrap;
+}
+
+.hud-main-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+    flex: 1;
+    min-width: 0;
+}
+
+.hud-location-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    line-height: 1.1;
+}
+
+.hud-station-tag {
+    font-size: 11px;
+    font-weight: 800;
+    color: #38bdf8;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hud-meta-dot {
+    color: var(--border-card);
+    font-size: 9px;
+}
+
+.hud-eta-info {
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+}
+
+.hud-objective-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-pure);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hud-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.hud-route-queue-wrapper {
+    position: relative;
+}
+
+.btn-hud-queue {
+    height: 28px;
+    padding: 0 10px;
+    background-color: var(--bg-card-sub);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border-card);
+    border-radius: 9999px;
+    color: var(--c-cyan);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn-hud-queue:hover {
+    color: #ffffff;
+    background-color: var(--c-cyan);
+    border-color: var(--c-cyan);
+    box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4);
+}
+
+.btn-hud-action {
+    height: 30px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.btn-hud-resolve-action {
+    background-color: var(--c-success);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+}
+
+.btn-hud-resolve-action:hover {
+    background-color: var(--c-success-hover);
+}
+
+.btn-hud-focus-action {
+    background-color: var(--c-primary);
+    color: #ffffff;
+}
+
+.btn-hud-focus-action:hover {
+    background-color: var(--c-primary-hover);
+}
+
+.btn-hud-telemetry-action {
+    background-color: var(--bg-card-sub);
+    color: var(--text-pure);
+    border: 1px solid var(--border-card);
+    padding: 0 10px;
+    height: 30px;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-hud-telemetry-action:hover {
+    border-color: #38bdf8;
+    background-color: rgba(56, 189, 248, 0.12);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+}
+
+.btn-hud-telemetry-action.error-blinking {
+    animation: telemetryRedBlink 2s infinite ease-in-out !important;
+}
+
+@keyframes telemetryRedBlink {
+    0% {
+        background-color: rgba(239, 68, 68, 0.2);
+        border-color: rgba(239, 68, 68, 0.5);
+        box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+        color: #f87171;
+    }
+    50% {
+        background-color: rgba(220, 38, 38, 0.9);
+        border-color: #ef4444;
+        box-shadow: 0 0 16px rgba(239, 68, 68, 0.85);
+        color: #ffffff;
+    }
+    100% {
+        background-color: rgba(239, 68, 68, 0.2);
+        border-color: rgba(239, 68, 68, 0.5);
+        box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+        color: #f87171;
+    }
+}
+
+.telemetry-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #94a3b8;
+    display: inline-block;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.telemetry-status-dot.active {
+    background-color: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: dotPulse 1.8s infinite;
+}
+
+@keyframes dotPulse {
+    0% { transform: scale(0.95); opacity: 0.8; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.telemetry-status-dot.passive {
+    background-color: #f59e0b;
+}
+
+.telemetry-status-dot.error {
+    background-color: #ef4444;
+    box-shadow: 0 0 8px #ef4444;
+}
+
+.hud-live-pill-badge {
+    font-size: 9px;
+    font-weight: 900;
+    padding: 1px 5px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+
+.hud-live-pill-badge.active {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.hud-live-pill-badge.passive {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.hud-live-pill-badge.error {
+    background-color: rgba(239, 68, 68, 0.25);
+    color: #ffffff;
+    border: 1px solid rgba(239, 68, 68, 0.6);
+}
+
+.hud-dropdown-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 360px;
+    max-width: 92vw;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-floating);
+    z-index: 1050;
+    overflow: hidden;
+}
+
+.dropdown-header {
+    background-color: var(--bg-card-sub);
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-pure);
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.btn-text-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.btn-text-close:hover {
+    color: var(--text-pure);
+}
+
+.hud-stops-preview {
+    max-height: 250px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-card) transparent;
+}
+
+.hud-stop-row {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.hud-stop-row:last-child {
+    border-bottom: none;
+}
+
+.hud-stop-row:hover {
+    background-color: var(--bg-card-hover);
+}
+
+.hud-stop-row.active-stop-row {
+    background-color: rgba(59, 130, 246, 0.12);
+}
+
+.hud-stop-index {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background-color: var(--bg-card-sub);
+    border: 1px solid var(--border-card);
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.hud-stop-row.active-stop-row .hud-stop-index {
+    background-color: var(--c-primary);
+    border-color: var(--c-primary);
+    color: #ffffff;
+}
+
+.hud-stop-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.hud-stop-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.hud-stop-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-pure);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hud-active-tag {
+    font-size: 9px;
+    font-weight: 700;
+    background-color: var(--c-primary);
+    color: #ffffff;
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+.hud-stop-fault {
+    font-size: 10px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hud-stop-meta {
+    text-align: right;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.hud-stop-dist {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-pure);
+}
+
+.hud-stop-time {
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+/* Multi-Vehicle Focus Dropdown Menu */
+.focus-vehicle-option-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    color: var(--text-head);
+}
+
+.focus-vehicle-option-row:hover {
+    background-color: var(--bg-card-hover);
+}
